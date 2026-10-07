@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Call Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Hind+Vadodara:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F6F8; --sheet:#FFFFFF; --ink:#1E2A47; --ink-2:#4A5672; --rule:#DCE1E8;
+  --wait:#A7B0C0; --live:#3157D5; --done:#1E2A47;
+  --good:#0F766E; --good-bg:#E3F3F1; --amber:#A16207; --amber-bg:#FBF1DC;
+  --bad:#9B2C2C; --bad-bg:#F8E6E6; --muted-bg:#EDF0F4;
+  --radius-s:6px; --radius-l:12px;
+  --body:"Hind Vadodara","Noto Sans Gujarati","Noto Sans Devanagari",system-ui,sans-serif;
+  --head:"Bricolage Grotesque",var(--body);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 var(--body)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--live);outline-offset:2px}
+a{color:var(--live)}
+
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;
+  padding:18px 32px;border-bottom:1px solid var(--rule);background:var(--sheet)}
+.brand{font:700 22px/1 var(--head);letter-spacing:-.01em;margin:0}
+.brand small{display:block;font:400 14px/1.4 var(--body);color:var(--ink-2);letter-spacing:0;margin-top:4px}
+.who{display:flex;gap:12px;align-items:center;font-size:14px;color:var(--ink-2)}
+.who[hidden]{display:none}
+.who b{color:var(--ink);font-weight:600}
+/* sign-in screen */
+.signin{display:grid;place-items:center;min-height:calc(100vh - 90px);padding:24px 16px}
+.signin[hidden],main[hidden]{display:none}
+.signin form{width:100%;max-width:380px;background:var(--sheet);border:1px solid var(--rule);border-radius:var(--radius-l);padding:28px}
+.signin h2{margin-bottom:6px}
+.signin .field input{background:var(--sheet)}
+
+main{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:32px;padding:28px 32px 64px;max-width:1440px;margin:0 auto}
+@media (max-width:900px){main{grid-template-columns:1fr;padding:20px 16px 48px}header{padding:16px}}
+
+h2{font:700 20px/1.25 var(--head);margin:0 0 4px}
+.hint{color:var(--ink-2);font-size:15px;margin:0 0 16px}
+
+/* upload column */
+.upload{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--radius-l);padding:24px;align-self:start;position:sticky;top:16px}
+@media (max-width:900px){.upload{position:static}}
+.drop{display:block;border:2px dashed var(--rule);border-radius:var(--radius-l);padding:28px 16px;text-align:center;cursor:pointer;background:var(--paper);transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--live);background:#EEF2FD}
+.drop strong{display:block;font-weight:600}
+.drop span{font-size:14px;color:var(--ink-2)}
+.drop input{position:absolute;width:1px;height:1px;opacity:0}
+.field{margin-top:16px}
+.field label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+.field select,.field input{width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:var(--radius-s);background:var(--sheet)}
+.preview{margin-top:16px;font-size:15px}
+.preview p{margin:0 0 6px}
+.rejects{margin:8px 0 0;padding:10px 12px 10px 28px;background:var(--bad-bg);border-radius:var(--radius-s);font-size:14px;max-height:160px;overflow:auto}
+.rejects li{margin:2px 0}
+.primary{margin-top:20px;width:100%;padding:12px 16px;border:0;border-radius:var(--radius-s);background:var(--ink);color:#fff;font-weight:600;cursor:pointer}
+.primary:disabled{background:var(--wait);cursor:not-allowed}
+.window{margin-top:16px;font-size:14px;color:var(--ink-2)}
+.window b{color:var(--ink)}
+.msg{margin-top:12px;font-size:14px;padding:10px 12px;border-radius:var(--radius-s)}
+.msg.error{background:var(--bad-bg);color:var(--bad)}
+.msg.ok{background:var(--good-bg);color:var(--good)}
+.example{font-size:13px;color:var(--ink-2);margin-top:12px}
+.example code{background:var(--muted-bg);padding:1px 5px;border-radius:4px}
+
+/* batches */
+.batches{min-width:0}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin:12px 0 20px}
+.tab{flex:0 0 auto;border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:14px;white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.empty{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--radius-l);padding:40px 24px;color:var(--ink-2)}
+.empty h3{font:700 18px/1.3 var(--head);color:var(--ink);margin:0 0 6px}
+
+.batch-head{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;justify-content:space-between}
+.batch-head h3{font:700 26px/1.15 var(--head);margin:0;letter-spacing:-.01em}
+.batch-head p{margin:4px 0 0;color:var(--ink-2);font-size:15px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.ghost{border:1px solid var(--rule);background:var(--sheet);border-radius:var(--radius-s);padding:7px 12px;cursor:pointer;font-size:14px}
+.ghost:hover{border-color:var(--ink-2)}
+.ghost.stop{color:var(--bad)}
+
+/* the call board: one tick per person */
+.board{display:flex;flex-wrap:wrap;gap:3px;margin:22px 0 10px}
+.tick{width:16px;height:36px;border-radius:3px;background:var(--wait);border:0;padding:0;cursor:pointer}
+.tick[data-s="live"]{background:var(--live);animation:pulse 1.4s ease-in-out infinite}
+.tick[data-s="done"]{background:var(--done)}
+.tick[data-o="good"]{background:var(--good)} .tick[data-o="amber"]{background:var(--amber)} .tick[data-o="bad"]{background:var(--bad)}
+.tick[data-s="miss"]{background:transparent;box-shadow:inset 0 0 0 2px var(--wait)}
+@keyframes pulse{50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.tick[data-s="live"]{animation:none}}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;color:var(--ink-2);margin-bottom:22px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend b{color:var(--ink);font-weight:600}
+
+table{width:100%;border-collapse:collapse;background:var(--sheet);border:1px solid var(--rule);border-radius:var(--radius-l);overflow:hidden;font-size:15px}
+th{font-weight:600;color:var(--ink-2);font-size:14px;text-align:left;padding:10px 14px;background:var(--paper);border-bottom:1px solid var(--rule)}
+td{padding:12px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:0}
+tr.flash td{background:#EEF2FD}
+.name{font-weight:600}
+.phone{color:var(--ink-2);font-size:14px;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:1px 9px;border-radius:999px;font-size:13px;font-weight:600;background:var(--muted-bg);color:var(--ink-2);white-space:nowrap}
+.pill.live{background:#E5ECFB;color:var(--live)}
+.pill.good{background:var(--good-bg);color:var(--good)}
+.pill.amber{background:var(--amber-bg);color:var(--amber)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.summary{color:var(--ink-2);font-size:14px;max-width:46ch}
+.followup{margin-top:6px;padding:4px 8px;border-radius:var(--radius-s);background:var(--amber-bg);color:var(--amber);font-size:13px;font-weight:600}
+.links{white-space:nowrap;font-size:14px}
+.links a+a{margin-left:10px}
+@media (max-width:700px){
+  table,tbody,tr,td{display:block}
+  thead{display:none}
+  tr{border-bottom:1px solid var(--rule);padding:6px 0}
+  td{border:0;padding:4px 14px}
+}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<header>
+  <h1 class="brand">Call Desk<small>Upload today's list. The agent calls everyone and writes a report for each person.</small></h1>
+  <div class="who" id="who" hidden>
+    <span>Signed in as <b id="who-name"></b></span>
+    <button class="ghost" id="signout" type="button">Sign out</button>
+  </div>
+</header>
+
+<section class="signin" id="signin" hidden aria-labelledby="si-h">
+  <form id="signin-form" novalidate>
+    <h2 id="si-h">Sign in</h2>
+    <p class="hint">Use the dashboard username and password set up for this server.</p>
+    <div class="field">
+      <label for="username">Username</label>
+      <input id="username" name="username" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+    </div>
+    <button class="primary" id="signin-btn" type="submit">Sign in</button>
+    <div id="signin-msg" role="alert" aria-live="assertive"></div>
+  </form>
+</section>
+
+<main id="app" hidden>
+  <section class="upload" aria-labelledby="up-h">
+    <h2 id="up-h">Today's list</h2>
+    <p class="hint">A CSV file with two columns: name and phone number.</p>
+
+    <label class="drop" id="drop">
+      <input id="file" type="file" accept=".csv,text/csv">
+      <strong id="drop-title">Choose a CSV file</strong>
+      <span id="drop-sub">or drop it here</span>
+    </label>
+    <p class="example">Example first lines:<br><code>name,phone</code><br><code>Sujal Thakkar,98765 43210</code></p>
+
+    <div class="preview" id="preview" hidden></div>
+
+    <div class="field">
+      <label for="product">Product to sell</label>
+      <select id="product"><option value="">Loading products…</option></select>
+    </div>
+
+    <button class="primary" id="start" disabled>Start calling</button>
+    <div id="upload-msg" role="status" aria-live="polite"></div>
+    <p class="window" id="window"></p>
+  </section>
+
+  <section class="batches" aria-labelledby="b-h">
+    <h2 id="b-h">Lists</h2>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Uploaded lists"></div>
+    <div id="detail"></div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => {
+  const n = Object.assign(document.createElement(tag), props);
+  for (const k of kids) if (k != null) n.append(k);
+  return n;
+};
+
+// ---------------------------------------------------------------- session
+// The browser holds an HttpOnly session cookie that this script cannot read.
+// No key or password is ever stored in the page or in localStorage.
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    credentials: "same-origin",
+    headers: { "X-Requested-With": "CallDesk", ...(opts.headers || {}) },
+  });
+  if (res.status === 401) { showSignIn("Your session has ended. Please sign in again."); throw new Error("Please sign in."); }
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { const j = await res.json(); detail = typeof j.detail === "string" ? j.detail : (j.detail?.message || JSON.stringify(j.detail)); } catch {}
+    throw new Error(detail);
+  }
+  return res;
+}
+
+async function download(path) {
+  const res = await api(path);
+  const cd = res.headers.get("Content-Disposition") || "";
+  const m = cd.match(/filename\*=UTF-8''([^;]+)/) || cd.match(/filename="([^"]+)"/);
+  const name = m ? decodeURIComponent(m[1]) : "download";
+  const url = URL.createObjectURL(await res.blob());
+  el("a", { href: url, download: name }).click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+// ---------------------------------------------------------------- labels
+const STATUS = {
+  queued: ["Waiting", "", "wait"], dialing: ["Dialing", "live", "live"], initiated: ["Ringing", "live", "live"],
+  ringing: ["Ringing", "live", "live"], "in-progress": ["On call", "live", "live"], completed: ["Done", "", "done"],
+  "no-answer": ["No answer", "", "miss"], busy: ["Busy", "", "miss"], failed: ["Couldn't connect", "bad", "miss"],
+  canceled: ["Stopped", "", "miss"],
+};
+const OUTCOME = {
+  sale: ["Sale", "good"], interested: ["Interested", "good"], callback: ["Call back", "amber"],
+  not_interested: ["Not interested", "bad"], do_not_call: ["Do not call", "bad"],
+  unknown: ["Unclear", ""], no_conversation: ["No conversation", ""],
+};
+const pill = (text, cls) => el("span", { className: `pill ${cls || ""}`, textContent: text });
+
+// ---------------------------------------------------------------- upload
+let chosen = null;
+const drop = $("drop");
+["dragover", "dragenter"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((t) => drop.addEventListener(t, () => drop.classList.remove("over")));
+drop.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) choose(e.dataTransfer.files[0]); });
+$("file").addEventListener("change", (e) => e.target.files[0] && choose(e.target.files[0]));
+$("product").addEventListener("change", updateStart);
+
+async function choose(file) {
+  chosen = null;
+  $("drop-title").textContent = file.name;
+  $("drop-sub").textContent = "Checking the file…";
+  const box = $("preview");
+  box.hidden = false;
+  box.replaceChildren();
+  setMsg("");
+  try {
+    const fd = new FormData();
+    fd.append("file", file);
+    const p = await (await api("/api/v1/batches/preview", { method: "POST", body: fd })).json();
+    $("drop-sub").textContent = "Choose another file";
+    box.append(el("p", {}, el("strong", { textContent: `${p.valid_count} people will be called.` })));
+    if (p.rejected_count) {
+      box.append(el("p", { textContent: `${p.rejected_count} row(s) will be skipped:` }));
+      const ul = el("ul", { className: "rejects" });
+      p.rejected.slice(0, 50).forEach((r) =>
+        ul.append(el("li", { textContent: `Line ${r.line}: ${r.name || "(no name)"} ${r.phone || ""} — ${r.reason}` })));
+      box.append(ul);
+    }
+    if (p.valid_count) chosen = file;
+  } catch (err) {
+    $("drop-sub").textContent = "Choose another file";
+    box.append(el("p", { className: "msg error", textContent: err.message }));
+  }
+  updateStart();
+}
+
+function updateStart() {
+  const btn = $("start");
+  btn.disabled = !(chosen && $("product").value);
+  btn.textContent = "Start calling";
+}
+
+function setMsg(text, kind) {
+  const m = $("upload-msg");
+  m.className = text ? `msg ${kind}` : "";
+  m.textContent = text;
+}
+
+$("start").addEventListener("click", async () => {
+  const btn = $("start");
+  btn.disabled = true;
+  btn.textContent = "Uploading…";
+  try {
+    const fd = new FormData();
+    fd.append("file", chosen);
+    fd.append("product_sku", $("product").value);
+    const r = await (await api("/api/v1/batches", { method: "POST", body: fd })).json();
+    const skipped = r.skipped_do_not_call.length ? ` ${r.skipped_do_not_call.length} skipped (do-not-call list).` : "";
+    setMsg(`${r.queued} calls queued.${skipped}`, "ok");
+    chosen = null;
+    $("file").value = "";
+    $("drop-title").textContent = "Choose a CSV file";
+    $("drop-sub").textContent = "or drop it here";
+    $("preview").hidden = true;
+    selected = r.batch_id;
+    await loadBatches();
+  } catch (err) {
+    setMsg(err.message, "error");
+  }
+  btn.textContent = "Start calling";
+  updateStart();
+});
+
+// ---------------------------------------------------------------- batches
+let selected = null;
+let timer = null;
+
+async function loadBatches() {
+  const list = await (await api("/api/v1/batches")).json();
+  const tabs = $("tabs");
+  tabs.replaceChildren();
+  if (!list.length) {
+    $("detail").replaceChildren(el("div", { className: "empty" },
+      el("h3", { textContent: "No lists yet" }),
+      el("p", { textContent: "Upload today's CSV on the left. Each person's call status and report will appear here." })));
+    return;
+  }
+  if (!selected || !list.some((b) => b.id === selected)) selected = list[0].id;
+  for (const b of list) {
+    const t = el("button", { className: "tab", textContent: b.label });
+    t.setAttribute("role", "tab");
+    t.setAttribute("aria-selected", b.id === selected);
+    t.addEventListener("click", () => { selected = b.id; loadBatches(); });
+    tabs.append(t);
+  }
+  await loadDetail();
+}
+
+async function loadDetail() {
+  if (!selected) return;
+  const b = await (await api(`/api/v1/batches/${selected}`)).json();
+  const c = b.status_counts || {};
+  const n = (...ks) => ks.reduce((a, k) => a + (c[k] || 0), 0);
+  const waiting = n("queued"), live = n("dialing", "initiated", "ringing", "in-progress"), done = n("completed");
+  const missed = n("no-answer", "busy", "failed", "canceled");
+  const outcomes = b.calls.reduce((a, x) => (x.outcome ? (a[x.outcome] = (a[x.outcome] || 0) + 1, a) : a), {});
+
+  const head = el("div", { className: "batch-head" },
+    el("div", {},
+      el("h3", { textContent: b.label }),
+      el("p", { textContent: `${b.calls.length} people, selling ${b.product_name || b.product_sku}.` + (b.rejected?.length ? ` ${b.rejected.length} rows in the file were skipped.` : "") })),
+    el("div", { className: "actions" },
+      button("Download all reports (.zip)", () => download(`/api/v1/batches/${b.id}/reports.zip`)),
+      button("Summary (.csv)", () => download(`/api/v1/batches/${b.id}/summary.csv`)),
+      waiting ? button("Stop calling", async () => {
+        if (!confirm(`Stop the ${waiting} calls that haven't started yet?`)) return;
+        await api(`/api/v1/batches/${b.id}/cancel`, { method: "POST" });
+        loadDetail();
+      }, "stop") : null));
+
+  // the call board
+  const board = el("div", { className: "board" });
+  board.setAttribute("role", "list");
+  board.setAttribute("aria-label", "Call progress, one mark per person");
+  b.calls.forEach((x) => {
+    const [label, , s] = STATUS[x.status] || [x.status, "", "wait"];
+    const o = OUTCOME[x.outcome]?.[1];
+    const t = el("button", { className: "tick", title: `${x.name} — ${label}${x.outcome ? ", " + OUTCOME[x.outcome][0] : ""}` });
+    t.dataset.s = s;
+    if (o && s === "done") t.dataset.o = o;
+    t.setAttribute("role", "listitem");
+    t.addEventListener("click", () => {
+      const row = document.querySelector(`tr[data-id="${x.call_id}"]`);
+      row?.scrollIntoView({ behavior: "smooth", block: "center" });
+      row?.classList.add("flash");
+      setTimeout(() => row?.classList.remove("flash"), 1500);
+    });
+    board.append(t);
+  });
+
+  const key = (color, text, count) => el("span", {}, el("i", { style: `background:${color}` }), text + " ", el("b", { textContent: count }));
+  const legend = el("div", { className: "legend" },
+    key("var(--wait)", "Waiting", waiting), key("var(--live)", "On the phone", live), key("var(--done)", "Done", done),
+    key("var(--good)", "Interested or sale", (outcomes.interested || 0) + (outcomes.sale || 0)),
+    key("var(--amber)", "Call back", outcomes.callback || 0),
+    key("var(--bad)", "Not interested", (outcomes.not_interested || 0) + (outcomes.do_not_call || 0)),
+    el("span", {}, el("i", { style: "box-shadow:inset 0 0 0 2px var(--wait)" }), "Didn't connect ", el("b", { textContent: missed })));
+
+  const tbody = el("tbody");
+  for (const x of b.calls) {
+    const [label, cls] = STATUS[x.status] || [x.status, ""];
+    const out = OUTCOME[x.outcome];
+    const links = el("td", { className: "links" });
+    if (x.report_url) {
+      links.append(el("a", { href: x.report_url, target: "_blank", rel: "noopener", textContent: "Open report" }));
+      const dl = el("a", { href: "#", textContent: "Download" });
+      dl.addEventListener("click", (e) => { e.preventDefault(); download(`/api/v1/calls/${x.call_id}/report?format=md`); });
+      links.append(dl);
+    } else {
+      const ended = ["completed", "no-answer", "busy", "failed", "canceled"].includes(x.status);
+      links.append(el("span", { className: "phone", textContent: ended ? "Being written…" : "After the call" }));
+    }
+    const tr = el("tr", {},
+      el("td", {}, el("div", { className: "name", textContent: x.name || "—" }), el("div", { className: "phone", textContent: x.phone })),
+      el("td", {}, pill(label, cls)),
+      el("td", {}, out ? pill(out[0], out[1]) : el("span", { className: "phone", textContent: "—" }),
+        x.callback_time ? el("div", { className: "phone", textContent: `Call back: ${x.callback_time}` }) : null),
+      el("td", { className: "summary" },
+        x.summary || x.error || "",
+        ...(x.follow_ups || []).map((f) => el("div", { className: "followup", textContent: `Needs follow-up: ${f}` }))),
+      links);
+    tr.dataset.id = x.call_id;
+    tbody.append(tr);
+  }
+  const table = el("table", {},
+    el("thead", {}, el("tr", {}, ...["Person", "Call", "Result", "What happened", "Report"].map((h) => el("th", { scope: "col", textContent: h })))),
+    tbody);
+
+  $("detail").replaceChildren(head, board, legend, table);
+  clearTimeout(timer);
+  if (waiting || live || b.calls.some((x) => !x.report_url && ["completed"].includes(x.status))) {
+    timer = setTimeout(() => loadDetail().catch(() => {}), 4000);
+  }
+}
+
+function button(text, onClick, extra = "") {
+  const b = el("button", { className: `ghost ${extra}`, textContent: text });
+  b.addEventListener("click", async () => {
+    b.disabled = true;
+    try { await onClick(); } catch (err) { alert(err.message); }
+    b.disabled = false;
+  });
+  return b;
+}
+
+// ---------------------------------------------------------------- start
+function showSignIn(message = "", kind = "error") {
+  clearTimeout(timer);
+  $("app").hidden = true;
+  $("who").hidden = true;
+  $("signin").hidden = false;
+  const m = $("signin-msg");
+  m.className = message ? `msg ${kind}` : "";
+  m.textContent = message;
+  $("username").focus();
+}
+
+$("signin-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = $("signin-btn");
+  btn.disabled = true;
+  btn.textContent = "Signing in…";
+  try {
+    const res = await fetch("/auth/login", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-Requested-With": "CallDesk" },
+      body: JSON.stringify({ username: $("username").value.trim(), password: $("password").value }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.detail || "Couldn't sign in.");
+    $("password").value = "";
+    await boot();
+  } catch (err) {
+    showSignIn(err.message);
+  }
+  btn.disabled = false;
+  btn.textContent = "Sign in";
+});
+
+$("signout").addEventListener("click", async () => {
+  await fetch("/auth/logout", { method: "POST", credentials: "same-origin", headers: { "X-Requested-With": "CallDesk" } });
+  showSignIn("You've been signed out.", "ok");
+});
+
+async function boot() {
+  const me = await fetch("/auth/me", { credentials: "same-origin" });
+  if (!me.ok) {
+    const st = await (await fetch("/auth/status")).json().catch(() => ({}));
+    showSignIn(st.login_configured === false
+      ? "Sign-in isn't set up on this server yet. Run python -m scripts.hash_password and add the result to .env."
+      : "");
+    return;
+  }
+  $("who-name").textContent = (await me.json()).user;
+  $("who").hidden = false;
+  $("signin").hidden = true;
+  $("app").hidden = false;
+  try {
+    const products = await (await api("/api/v1/products")).json();
+    const sel = $("product");
+    sel.replaceChildren();
+    if (!products.length) sel.append(el("option", { value: "", textContent: "No products yet. Run scripts/seed_db.py" }));
+    products.forEach((p) => sel.append(el("option", { value: p.sku, textContent: `${p.name}` })));
+    const w = await (await api("/api/v1/batches/dialer-status")).json();
+    $("window").replaceChildren(
+      "Calls are made between ", el("b", { textContent: w.calling_hours }), ` (${w.timezone}), up to ${w.max_concurrent} at a time. `,
+      w.open_now ? "Calling is open now." : "Calling is closed right now; new lists will start at the next opening.");
+    updateStart();
+    await loadBatches();
+  } catch (err) {
+    $("detail").replaceChildren(el("div", { className: "empty" }, el("h3", { textContent: "Couldn't load" }), el("p", { textContent: err.message })));
+  }
+}
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30
+pydantic>=2.7,<3
+pydantic-settings>=2.3
+python-multipart>=0.0.9
+websockets>=13.0
+numpy>=1.26
+pymongo>=4.13
+groq>=0.30
+sarvamai>=0.1.35
+twilio>=9.0
+tzdata>=2024.1
